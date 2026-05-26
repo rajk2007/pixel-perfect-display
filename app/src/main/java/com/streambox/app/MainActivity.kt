@@ -2,14 +2,14 @@ package com.streambox.app
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.net.http.SslError
 import android.os.Bundle
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
-import android.webkit.SslError
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
-import android.webkit.SslErrorHandler
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.ProgressBar
