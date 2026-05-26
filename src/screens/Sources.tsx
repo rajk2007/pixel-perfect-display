@@ -276,6 +276,21 @@ function AddRepoModal({ onClose, onAdd }: { onClose: () => void; onAdd: (r: Repo
 }
 
 function PluginList({ repo, onBack, onToggle }: { repo: Repo; onBack: () => void; onToggle: (p: Plugin) => void }) {
+  const [installing, setInstalling] = useState<Record<string, boolean>>({});
+
+  const handle = (p: Plugin) => {
+    if (installing[p.name]) return;
+    if (!p.installed) {
+      setInstalling((s) => ({ ...s, [p.name]: true }));
+      setTimeout(() => {
+        setInstalling((s) => ({ ...s, [p.name]: false }));
+        onToggle(p);
+      }, 1000);
+    } else {
+      onToggle(p);
+    }
+  };
+
   return (
     <div className="px-4 pb-24 pt-4">
       <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-cyan">
@@ -284,26 +299,39 @@ function PluginList({ repo, onBack, onToggle }: { repo: Repo; onBack: () => void
       <h2 className="font-display text-lg font-bold text-text">{repo.name}</h2>
       <p className="text-xs text-muted">{repo.plugins.length} plugins available</p>
       <ul className="mt-4 space-y-2">
-        {repo.plugins.map((p) => (
-          <li key={p.name} className="glass flex items-center justify-between rounded-xl border border-border p-3">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-text">{p.name}</div>
-              <div className="mt-1 flex items-center gap-2 text-[10px]">
-                <span className="rounded bg-cyan/15 px-1.5 py-0.5 font-bold tracking-widest text-cyan">{p.type.toUpperCase()}</span>
-                <span className="rounded bg-surface-2 px-1.5 py-0.5 text-muted">{p.lang}</span>
-                <span className="text-muted">{p.version}</span>
-              </div>
-            </div>
-            <button
-              onClick={() => onToggle(p)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
-                p.installed ? "border border-red/60 text-red" : "bg-cyan text-bg box-glow-cyan"
+        {repo.plugins.map((p) => {
+          const busy = installing[p.name];
+          return (
+            <li
+              key={p.name}
+              className={`glass flex items-center justify-between rounded-xl border p-3 transition ${
+                p.installed ? "border-cyan/70 box-glow-cyan" : "border-border"
               }`}
             >
-              {p.installed ? "Uninstall" : "Install"}
-            </button>
-          </li>
-        ))}
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-text">{p.name}</div>
+                <div className="mt-1 flex items-center gap-2 text-[10px]">
+                  <span className="rounded bg-cyan/15 px-1.5 py-0.5 font-bold tracking-widest text-cyan">{p.type.toUpperCase()}</span>
+                  <span className="rounded bg-surface-2 px-1.5 py-0.5 text-muted">{p.lang}</span>
+                  <span className="text-muted">{p.version}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => handle(p)}
+                disabled={busy}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                  busy
+                    ? "border border-cyan/40 text-cyan/70"
+                    : p.installed
+                      ? "border border-red/60 text-red"
+                      : "border border-cyan/60 text-cyan hover:bg-cyan/10"
+                }`}
+              >
+                {busy ? "Installing..." : p.installed ? "Uninstall" : "Install"}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
