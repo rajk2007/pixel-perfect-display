@@ -67,8 +67,7 @@ class MainActivity : AppCompatActivity() {
 
             // Cache settings
             cacheMode = WebSettings.LOAD_DEFAULT
-            setAppCacheEnabled(true)
-            setAppCachePath(applicationContext.cacheDir.absolutePath)
+
         }
 
         // Allow WebView to handle cookies (some video hosts need sessions)
