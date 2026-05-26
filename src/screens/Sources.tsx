@@ -304,7 +304,8 @@ function PluginList({ repo, onBack, onToggle }: { repo: Repo; onBack: () => void
       <p className="text-xs text-muted">{repo.plugins.length} plugins available</p>
       <ul className="mt-4 space-y-2">
         {repo.plugins.map((p) => {
-          const busy = installing[p.name];
+          const state = busy[p.name];
+          const label = state === "installing" ? "Installing..." : state === "removing" ? "Removing..." : p.installed ? "Uninstall" : "Install";
           return (
             <li
               key={p.name}
@@ -322,16 +323,16 @@ function PluginList({ repo, onBack, onToggle }: { repo: Repo; onBack: () => void
               </div>
               <button
                 onClick={() => handle(p)}
-                disabled={busy}
+                disabled={!!state}
                 className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                  busy
+                  state
                     ? "border border-cyan/40 text-cyan/70"
                     : p.installed
                       ? "border border-red/60 text-red"
                       : "border border-cyan/60 text-cyan hover:bg-cyan/10"
                 }`}
               >
-                {busy ? "Installing..." : p.installed ? "Uninstall" : "Install"}
+                {label}
               </button>
             </li>
           );
