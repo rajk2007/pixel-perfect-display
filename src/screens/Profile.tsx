@@ -508,7 +508,10 @@ function BackupModal({ onClose }: { onClose: () => void }) {
 
 function SyncModal({ onClose }: { onClose: () => void }) {
   const [done, setDone] = useState(false);
-  if (!done) setTimeout(() => setDone(true), 2000);
+  useEffect(() => {
+    const t = setTimeout(() => setDone(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 sm:items-center" onClick={onClose}>
