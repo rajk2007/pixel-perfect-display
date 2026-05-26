@@ -1,41 +1,31 @@
-import { Bell, Plus, Play, Search as SearchIcon, Zap } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Plus, Play, Search as SearchIcon, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { img, kindOf, titleOf, yearOf, type TmdbItem, tmdb } from "@/lib/tmdb";
 import Row from "@/components/Row";
 
-export default function Home({
-  data,
-  onOpen,
-}: {
-  data: {
-    trending: TmdbItem[];
-    movies: TmdbItem[];
-    tv: TmdbItem[];
-    anime: TmdbItem[];
-  };
-  onOpen: (i: TmdbItem) => void;
-}) {
-  const hero = data.trending[0];
+function HeroCarousel({ items, onOpen }: { items: TmdbItem[]; onOpen: (i: TmdbItem) => void }) {
+  const slides = items.slice(0, 5);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (slides.length < 2) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % slides.length), 5000);
+    return () => clearInterval(t);
+  }, [slides.length]);
+
+  if (slides.length === 0) return null;
+  const go = (n: number) => setIdx((n + slides.length) % slides.length);
 
   return (
-    <div className="pb-24">
-      <header className="flex items-center justify-between px-4 pt-4">
-        <div className="flex items-center gap-2">
-          <Zap className="h-6 w-6 text-cyan animate-pulse-glow" fill="currentColor" />
-          <span className="font-display glow-cyan text-cyan text-lg font-black tracking-widest">ZCAST</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <SearchIcon className="h-5 w-5 text-text/80" />
-          <Bell className="h-5 w-5 text-text/80" />
-          <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-purple to-magenta text-[11px] font-bold">
-            SU
-          </div>
-        </div>
-      </header>
-
-      {hero && (
-        <section className="mx-4 mt-4 overflow-hidden rounded-[20px] border border-border">
-          <div className="relative h-[230px] w-full">
+    <section className="mx-4 mt-4 overflow-hidden rounded-[20px] border border-border">
+      <div className="relative h-[260px] w-full">
+        {slides.map((hero, i) => (
+          <div
+            key={hero.id}
+            className={`absolute inset-0 transition-opacity duration-700 ${
+              i === idx ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
+          >
             {hero.backdrop_path && (
               <img
                 src={img(hero.backdrop_path, "w780")}
@@ -44,7 +34,7 @@ export default function Home({
               />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/60 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4">
+            <div className="absolute inset-x-0 bottom-0 p-4 pb-7">
               <div className="font-display text-[10px] font-bold tracking-[0.25em] text-cyan glow-cyan">
                 FEATURED TONIGHT
               </div>
@@ -68,8 +58,69 @@ export default function Home({
               </div>
             </div>
           </div>
-        </section>
-      )}
+        ))}
+
+        <button
+          aria-label="Previous"
+          onClick={() => go(idx - 1)}
+          className="absolute left-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-bg/60 text-text backdrop-blur hover:bg-bg/80"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          aria-label="Next"
+          onClick={() => go(idx + 1)}
+          className="absolute right-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-bg/60 text-text backdrop-blur hover:bg-bg/80"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+
+        <div className="absolute inset-x-0 bottom-2 z-10 flex justify-center gap-1.5">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              aria-label={`Slide ${i + 1}`}
+              onClick={() => setIdx(i)}
+              className={`h-1.5 rounded-full transition-all ${
+                i === idx ? "w-5 bg-cyan shadow-[0_0_8px_#00f5ff]" : "w-1.5 bg-text/30"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function Home({
+  data,
+  onOpen,
+}: {
+  data: {
+    trending: TmdbItem[];
+    movies: TmdbItem[];
+    tv: TmdbItem[];
+    anime: TmdbItem[];
+  };
+  onOpen: (i: TmdbItem) => void;
+}) {
+  return (
+    <div className="pb-24">
+      <header className="flex items-center justify-between px-4 pt-4">
+        <div className="flex items-center gap-2">
+          <Zap className="h-6 w-6 text-cyan animate-pulse-glow" fill="currentColor" />
+          <span className="font-display glow-cyan text-cyan text-lg font-black tracking-widest">ZCAST</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <SearchIcon className="h-5 w-5 text-text/80" />
+          <Bell className="h-5 w-5 text-text/80" />
+          <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-purple to-magenta text-[11px] font-bold">
+            SU
+          </div>
+        </div>
+      </header>
+
+      <HeroCarousel items={data.trending} onOpen={onOpen} />
 
       <Row title="Continue Watching" items={data.trending.slice(0, 4)} onOpen={onOpen} withProgress />
       <Row title="Trending Now" items={data.trending} onOpen={onOpen} />
