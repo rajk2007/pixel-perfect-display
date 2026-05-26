@@ -276,18 +276,22 @@ function AddRepoModal({ onClose, onAdd }: { onClose: () => void; onAdd: (r: Repo
 }
 
 function PluginList({ repo, onBack, onToggle }: { repo: Repo; onBack: () => void; onToggle: (p: Plugin) => void }) {
-  const [installing, setInstalling] = useState<Record<string, boolean>>({});
+  const [busy, setBusy] = useState<Record<string, "installing" | "removing" | undefined>>({});
 
   const handle = (p: Plugin) => {
-    if (installing[p.name]) return;
+    if (busy[p.name]) return;
     if (!p.installed) {
-      setInstalling((s) => ({ ...s, [p.name]: true }));
+      setBusy((s) => ({ ...s, [p.name]: "installing" }));
       setTimeout(() => {
-        setInstalling((s) => ({ ...s, [p.name]: false }));
         onToggle(p);
-      }, 1000);
+        setBusy((s) => ({ ...s, [p.name]: undefined }));
+      }, 1500);
     } else {
-      onToggle(p);
+      setBusy((s) => ({ ...s, [p.name]: "removing" }));
+      setTimeout(() => {
+        onToggle(p);
+        setBusy((s) => ({ ...s, [p.name]: undefined }));
+      }, 1000);
     }
   };
 
@@ -300,7 +304,8 @@ function PluginList({ repo, onBack, onToggle }: { repo: Repo; onBack: () => void
       <p className="text-xs text-muted">{repo.plugins.length} plugins available</p>
       <ul className="mt-4 space-y-2">
         {repo.plugins.map((p) => {
-          const busy = installing[p.name];
+          const state = busy[p.name];
+          const label = state === "installing" ? "Installing..." : state === "removing" ? "Removing..." : p.installed ? "Uninstall" : "Install";
           return (
             <li
               key={p.name}
@@ -318,16 +323,16 @@ function PluginList({ repo, onBack, onToggle }: { repo: Repo; onBack: () => void
               </div>
               <button
                 onClick={() => handle(p)}
-                disabled={busy}
+                disabled={!!state}
                 className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                  busy
+                  state
                     ? "border border-cyan/40 text-cyan/70"
                     : p.installed
                       ? "border border-red/60 text-red"
                       : "border border-cyan/60 text-cyan hover:bg-cyan/10"
                 }`}
               >
-                {busy ? "Installing..." : p.installed ? "Uninstall" : "Install"}
+                {label}
               </button>
             </li>
           );
