@@ -276,18 +276,22 @@ function AddRepoModal({ onClose, onAdd }: { onClose: () => void; onAdd: (r: Repo
 }
 
 function PluginList({ repo, onBack, onToggle }: { repo: Repo; onBack: () => void; onToggle: (p: Plugin) => void }) {
-  const [installing, setInstalling] = useState<Record<string, boolean>>({});
+  const [busy, setBusy] = useState<Record<string, "installing" | "removing" | undefined>>({});
 
   const handle = (p: Plugin) => {
-    if (installing[p.name]) return;
+    if (busy[p.name]) return;
     if (!p.installed) {
-      setInstalling((s) => ({ ...s, [p.name]: true }));
+      setBusy((s) => ({ ...s, [p.name]: "installing" }));
       setTimeout(() => {
-        setInstalling((s) => ({ ...s, [p.name]: false }));
         onToggle(p);
-      }, 1000);
+        setBusy((s) => ({ ...s, [p.name]: undefined }));
+      }, 1500);
     } else {
-      onToggle(p);
+      setBusy((s) => ({ ...s, [p.name]: "removing" }));
+      setTimeout(() => {
+        onToggle(p);
+        setBusy((s) => ({ ...s, [p.name]: undefined }));
+      }, 1000);
     }
   };
 
