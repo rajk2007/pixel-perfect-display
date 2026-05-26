@@ -1,76 +1,100 @@
 package com.streambox.app
 
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.widget.ImageButton
+import android.view.WindowManager
+import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.PlaybackException
+import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
+import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
-import com.google.android.exoplayer2.util.Log
 
 class PlayerActivity : AppCompatActivity() {
 
     private var player: ExoPlayer? = null
     private lateinit var playerView: PlayerView
-    private lateinit var titleTextView: TextView
-    private lateinit var backButton: ImageButton
+    private lateinit var titleText: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+        }
+
         setContentView(R.layout.activity_player)
 
-        playerView = findViewById(R.id.player_view)
-        titleTextView = findViewById(R.id.player_title)
-        backButton = findViewById(R.id.player_back_button)
+        playerView = findViewById(R.id.playerView)
+        titleText = findViewById(R.id.titleText)
 
-        val streamUrl = intent.getStringExtra("stream_url")
-        val contentTitle = intent.getStringExtra("content_title") ?: "StreamBox Player"
+        val streamUrl = intent.getStringExtra("stream_url") ?: ""
+        val title = intent.getStringExtra("title") ?: "Now Playing"
+        titleText.text = title
 
-        titleTextView.text = contentTitle
+        findViewById<ImageView>(R.id.backButton).setOnClickListener { finish() }
 
-        backButton.setOnClickListener { onBackPressed() }
-
-        if (streamUrl != null) {
-            initializePlayer(streamUrl)
+        if (streamUrl.isNotEmpty()) {
+            initPlayer(streamUrl)
         } else {
-            Log.e("PlayerActivity", "Stream URL is null")
-            // Handle error, maybe show a toast
+            Toast.makeText(this, "No stream URL found", Toast.LENGTH_LONG).show()
+            finish()
         }
     }
 
-    private fun initializePlayer(streamUrl: String) {
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent("Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36")
-            .setDefaultRequestProperties(mapOf("Referer" to streamUrl)) // Set referer to the stream URL itself or a known referrer
-
-        val mediaSourceFactory = DefaultMediaSourceFactory(this).setDataSourceFactory(httpDataSourceFactory)
+    private fun initPlayer(url: String) {
+        val dataSourceFactory = DefaultHttpDataSource.Factory()
+            .setUserAgent("Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+            .setDefaultRequestProperties(mapOf(
+                "Referer" to url,
+                "Origin" to (Uri.parse(url).scheme + "://" + Uri.parse(url).host)
+            ))
+            .setAllowCrossProtocolRedirects(true)
 
         player = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(mediaSourceFactory)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .build()
+            .also { exoPlayer ->
+                playerView.player = exoPlayer
 
-        playerView.player = player
+                val mediaItem = MediaItem.fromUri(url)
 
-        val mediaItem = MediaItem.fromUri(Uri.parse(streamUrl))
-        player?.setMediaItem(mediaItem)
-        player?.prepare()
-        player?.playWhenReady = true
-    }
+                val mediaSource = if (url.contains(".m3u8", ignoreCase = true)) {
+                    HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+                } else {
+                    null
+                }
 
-    override fun onPause() {
-        super.onPause()
-        player?.pause()
-    }
+                if (mediaSource != null) {
+                    exoPlayer.setMediaSource(mediaSource)
+                } else {
+                    exoPlayer.setMediaItem(mediaItem)
+                }
 
-    override fun onStop() {
-        super.onStop()
-        player?.release()
-        player = null
+                exoPlayer.addListener(object : Player.Listener {
+                    override fun onPlayerError(error: PlaybackException) {
+                        runOnUiThread {
+                            Toast.makeText(this@PlayerActivity, "Playback error: ${error.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                })
+
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+            }
     }
 
     override fun onDestroy() {
