@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, User, X, Check, Pencil } from "lucide-react";
 import type { TmdbItem } from "@/lib/tmdb";
 import Row from "@/components/Row";
